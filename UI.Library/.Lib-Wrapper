@@ -1,0 +1,55 @@
+local module = {}
+
+local origTypeof = typeof
+local clones = setmetatable({}, { __mode = "k" })
+
+local function pathOf(inst)
+	local path = {}
+	local node = inst
+	while node and node ~= game do
+		table.insert(path, 1, node.Parent == game and node.ClassName or node.Name)
+		node = node.Parent
+	end
+	return path
+end
+
+local function resolve(path)
+	local cur = game:GetService(path[1])
+	for i = 2, #path do
+		cur = cur and cur:FindFirstChild(path[i])
+	end
+	return cur
+end
+
+function module.unwrap_(v)
+	local p = clones[v]
+	return p and resolve(p) or v
+end
+
+function module.wrap_(inst)
+	local path = pathOf(inst)
+	local proxy = newproxy(true)
+	local mt = getmetatable(proxy)
+	clones[proxy] = path
+
+	mt.__index = function(_, key)
+		local v = resolve(path)[key]
+		if origTypeof(v) == "function" then
+			return function(self, ...)
+				local args = table.pack(...)
+				for i = 1, args.n do args[i] = module.unwrap_(args[i]) end
+				return v(clones[self] and resolve(path) or self, table.unpack(args, 1, args.n))
+			end
+		end
+		return v
+	end
+	mt.__newindex = function(_, key, value)
+		resolve(path)[key] = module.unwrap_(value)
+	end
+	mt.__tostring = function()
+		return path[#path]
+	end
+	return proxy
+end
+
+return module
