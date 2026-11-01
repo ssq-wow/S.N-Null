@@ -1,0 +1,257 @@
+local module = {}
+
+local ENV = {
+	Enum = Enum, UDim = UDim, UDim2 = UDim2,
+	Vector2 = Vector2, Vector3 = Vector3,
+	Color3 = Color3, BrickColor = BrickColor, CFrame = CFrame,
+	Rect = Rect, NumberRange = NumberRange,
+	NumberSequence = NumberSequence, NumberSequenceKeypoint = NumberSequenceKeypoint,
+	ColorSequence = ColorSequence, ColorSequenceKeypoint = ColorSequenceKeypoint,
+	TweenInfo = TweenInfo, Font = Font, math = math,
+}
+
+local ESCAPES = {
+	n = "\n", t = "\t", r = "\r", a = "\a", b = "\b", f = "\f", v = "\v",
+	["\\"] = "\\", ['"'] = '"', ["'"] = "'", ["\n"] = "\n",
+}
+
+function module.parseTable(src: string): any
+	local pos, len = 1, #src
+	local parseValue
+
+	local function fail(msg: string)
+		error(string.format("parseTable: %s (at position %d)", msg, pos), 0)
+	end
+
+	local function skip()
+		while pos <= len do
+			if src:sub(pos, pos):match("%s") then
+				pos += 1
+			elseif src:sub(pos, pos + 1) == "--" then
+				local eq = src:match("^%-%-%[(=*)%[", pos)
+				if eq then
+					local _, e = src:find("]" .. eq .. "]", pos, true)
+					pos = (e or len) + 1
+				else
+					local e = src:find("\n", pos, true)
+					pos = (e or len) + 1
+				end
+			else
+				break
+			end
+		end
+	end
+
+	local function parseString()
+		local quote = src:sub(pos, pos)
+		pos += 1
+		local buf = {}
+		while pos <= len do
+			local c = src:sub(pos, pos)
+			if c == quote then
+				pos += 1
+				return table.concat(buf)
+			elseif c == "\\" then
+				local nx = src:sub(pos + 1, pos + 1)
+				local digits = src:match("^%d%d?%d?", pos + 1)
+				local hex = nx == "x" and src:match("^%x%x", pos + 2)
+				if digits then
+					table.insert(buf, string.char(tonumber(digits)))
+					pos += 1 + #digits
+				elseif hex then
+					table.insert(buf, string.char(tonumber(hex, 16)))
+					pos += 4
+				else
+					table.insert(buf, ESCAPES[nx] or nx)
+					pos += 2
+				end
+			else
+				table.insert(buf, c)
+				pos += 1
+			end
+		end
+		fail("unterminated string")
+	end
+
+	local function parseLongString()
+		local eq = src:match("^%[(=*)%[", pos)
+		if not eq then fail("unexpected '['") end
+		local start = pos + #eq + 2
+		local s, e = src:find("]" .. eq .. "]", start, true)
+		if not s then fail("unterminated long string") end
+		local str = src:sub(start, s - 1)
+		pos = e + 1
+		if str:sub(1, 1) == "\n" then str = str:sub(2) end
+		return str
+	end
+
+	local function parseNumber()
+		local neg = false
+		if src:sub(pos, pos) == "-" then
+			neg = true
+			pos += 1
+			skip()
+			if not src:sub(pos, pos):match("[%d%.]") then
+				local v = parseValue()
+				if type(v) ~= "number" then fail("can't negate a non-number") end
+				return -v
+			end
+		end
+
+		local num
+		local hex = src:match("^0[xX]%x+", pos)
+		if hex then
+			num = tonumber(hex)
+			pos += #hex
+		else
+			local s = src:match("^%d+%.?%d*", pos) or src:match("^%.%d+", pos)
+			if not s then fail("invalid number") end
+			pos += #s
+			local exp = src:match("^[eE][+-]?%d+", pos)
+			if exp then
+				s ..= exp
+				pos += #exp
+			end
+			num = tonumber(s)
+		end
+		return neg and -num or num
+	end
+
+	local function parseArgs()
+		pos += 1
+		local args, n = {}, 0
+		skip()
+		if src:sub(pos, pos) == ")" then
+			pos += 1
+			return args, 0
+		end
+		while true do
+			n += 1
+			args[n] = parseValue()
+			skip()
+			local c = src:sub(pos, pos)
+			if c == "," then
+				pos += 1
+			elseif c == ")" then
+				pos += 1
+				return args, n
+			else
+				fail("expected ',' or ')'")
+			end
+		end
+	end
+
+	local function parsePath()
+		local name = src:match("^[%a_][%w_]*", pos)
+		pos += #name
+
+		if name == "true" then return true end
+		if name == "false" then return false end
+		if name == "nil" then return nil end
+
+		local value = ENV[name]
+		if value == nil then fail("unknown identifier '" .. name .. "'") end
+		local label = name
+
+		while true do
+			local seg = src:match("^%.([%a_][%w_]*)", pos)
+			if seg then
+				pos += #seg + 1
+				local ok, res = pcall(function() return value[seg] end)
+				if not ok or res == nil then fail(label .. "." .. seg .. " doesn't exist") end
+				value = res
+				label ..= "." .. seg
+			elseif src:sub(pos, pos) == "(" then
+				local args, n = parseArgs()
+				local ok, res = pcall(value, table.unpack(args, 1, n))
+				if not ok then fail("error calling " .. label .. ": " .. tostring(res)) end
+				value = res
+				label ..= "()"
+			else
+				break
+			end
+		end
+
+		return value
+	end
+
+	local function parseTableLiteral()
+		pos += 1
+		local result = {}
+		local arrayIndex = 1
+
+		while true do
+			skip()
+			local c = src:sub(pos, pos)
+			if c == "}" then
+				pos += 1
+				return result
+			elseif c == "" then
+				fail("unclosed table")
+			end
+
+			if c == "[" and not src:match("^%[=*%[", pos) then
+				pos += 1
+				local key = parseValue()
+				skip()
+				if src:sub(pos, pos) ~= "]" then fail("expected ']'") end
+				pos += 1
+				skip()
+				if src:sub(pos, pos) ~= "=" then fail("expected '='") end
+				pos += 1
+				result[key] = parseValue()
+			else
+				local named = false
+				local name = src:match("^[%a_][%w_]*", pos)
+				if name then
+					local save = pos
+					pos += #name
+					skip()
+					if src:sub(pos, pos) == "=" and src:sub(pos + 1, pos + 1) ~= "=" then
+						named = true
+						pos += 1
+						result[name] = parseValue()
+					else
+						pos = save
+					end
+				end
+				if not named then
+					result[arrayIndex] = parseValue()
+					arrayIndex += 1
+				end
+			end
+
+			skip()
+			local sep = src:sub(pos, pos)
+			if sep == "," or sep == ";" then
+				pos += 1
+			elseif sep ~= "}" then
+				fail("expected ',' or '}'")
+			end
+		end
+	end
+
+	function parseValue()
+		skip()
+		local c = src:sub(pos, pos)
+		if c == "{" then
+			return parseTableLiteral()
+		elseif c == '"' or c == "'" then
+			return parseString()
+		elseif c == "[" then
+			return parseLongString()
+		elseif c ~= "" and c:match("[%d%.%-]") then
+			return parseNumber()
+		elseif c ~= "" and c:match("[%a_]") then
+			return parsePath()
+		end
+		fail("unexpected '" .. c .. "'")
+	end
+
+	local result = parseValue()
+	skip()
+	if pos <= len then fail("unexpected content after table") end
+	return result
+end
+
+return module
