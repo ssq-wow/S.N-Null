@@ -170,7 +170,7 @@ nav.glass{overflow:hidden!important}
   </div></div></div>
   <h2>Where to go</h2>
   <div class="grid stage">
-    <button class="card glass tilt" data-go="install"><b>Installation</b><span>Add the module and require it.</span></button>
+    <button class="card glass tilt" data-go="install"><b>Installation</b><span>Load the module with loadstring.</span></button>
     <button class="card glass tilt" data-go="syntax"><b>Layout syntax</b><span>Commands that define tabs and controls.</span></button>
     <button class="card glass tilt" data-go="globals"><b>Environment functions</b><span>Wrap_, Unwrap_, Get and BindKey.</span></button>
     <button class="card glass tilt" data-go="events"><b>Events</b><span>Changed, onWrite, Activated and disconnecting.</span></button>
@@ -183,16 +183,23 @@ nav.glass{overflow:hidden!important}
 
 <section class="page" id="install" data-title="Installation">
   <h1>Installation</h1>
-  <p class="lead">S.N-N. UI Library runs inside a LocalScript and ships as a ModuleScript named <code>Lib</code>.</p>
+  <p class="lead">S.N-N. UI Library runs inside a LocalScript and is loaded from a remote module with <code>loadstring</code>.</p>
   <h2>Setup</h2>
-  <ul><li>Insert the S.N-N. UI Library ModuleScript as a child of your LocalScript.</li><li>Name it <code>Lib</code>.</li><li>Require it from the LocalScript.</li></ul>
-  <div class="note glass"><p>Requiring the library installs <code>Wrap_</code>, <code>Unwrap_</code>, <code>Get</code> and <code>BindKey</code> into the LocalScript's environment. Call them directly, with no import.</p></div>
+  <ul><li>Use a LocalScript in your executor.</li><li>Load the library with <code>loadstring(game:HttpGet(...))()</code>.</li><li>Store the result in a variable such as <code>Lib</code>.</li></ul>
+  <div class="note glass"><p>Loading the library installs <code>Wrap_</code>, <code>Unwrap_</code>, <code>Get</code> and <code>BindKey</code> into the LocalScript's environment. Call them directly, with no import.</p></div>
   <h2>Example</h2>
-  <div class="cb"><pre><code>local ModuleLib = script:WaitForChild("Lib", math.huge)
-local Lib = require(ModuleLib)
+  <div class="cb"><pre><code>local Lib = loadstring(game:HttpGet('https://raw.githubusercontent.com/ssq-wow/S.N-Null/refs/heads/main/UI.Library/Lib-Module'))()
 
 -- Get is now available with no import
 print(Get)</code></pre></div>
+  <h2>Loading only the wrapper (no GUI)</h2>
+  <p>If you only need <code>Wrap_</code> and <code>Unwrap_</code> and do not want the UI, load the wrapper module on its own. It resolves the module source from the repository, so no GUI is created.</p>
+  <div class="cb"><pre><code>local Resolve = loadstring(game:HttpGet('https://raw.githubusercontent.com/ssq-wow/S.N-Null/refs/heads/main/UI.Library/ResolveUrl'))()
+local WrapperModule = Resolve.FetchUrl(".Lib-Wrapper")
+
+local WrapperLib = loadstring(WrapperModule)()
+local Wrap_, Unwrap_ = WrapperLib.wrap_, WrapperLib.unwrap_</code></pre></div>
+  <div class="note glass"><p>Here <code>Wrap_</code> and <code>Unwrap_</code> are local variables, so they are only available in the script that loaded them. The same safety rules apply as on <a href="#wrapping" data-go="wrapping">Using Wrap_ and Unwrap_ safely</a>.</p></div>
 </section>
 
 <section class="page" id="quick" data-title="Quick start">
@@ -201,7 +208,7 @@ print(Get)</code></pre></div>
   <div class="sig"><i>table</i> Lib.<u>NewUI</u>(<i>string</i> <em>layout</em>)</div>
   <p>The returned table is indexed by tab name, like <code>MainUI["Tab1"]</code>, to reach that tab's events.</p>
   <h2>Example</h2>
-  <div class="cb"><pre><code>local Lib = require(script:WaitForChild("Lib", math.huge))
+  <div class="cb"><pre><code>local Lib = loadstring(game:HttpGet('https://raw.githubusercontent.com/ssq-wow/S.N-Null/refs/heads/main/UI.Library/Lib-Module'))()
 
 local Layout = [[{
 	["~!Config"] = {
@@ -508,8 +515,7 @@ end</code></pre></div>
 <section class="page" id="example" data-title="Full example">
   <h1>Full example</h1>
   <p class="lead">A complete LocalScript using every major feature.</p>
-  <div class="cb"><pre><code>local ModuleLib = script:WaitForChild("Lib", math.huge)
-local Lib = require(ModuleLib)
+  <div class="cb"><pre><code>local Lib = loadstring(game:HttpGet('https://raw.githubusercontent.com/ssq-wow/S.N-Null/refs/heads/main/UI.Library/Lib-Module'))()
 
 local MainUI = [[{
 	["~!Config"] = {
