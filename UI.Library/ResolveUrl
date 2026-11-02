@@ -17,7 +17,7 @@ local map = {
 function module.FetchURL(modulename)
     for index, v in pairs(map) do
         if v[modulename] then
-            return MainFolder..index..modulename
+            return game:HttpGet(MainFolder..index..modulename)
         end
     end
     
