@@ -1122,7 +1122,7 @@ function module.NewUI(Data: {[any]: any})
 	local ClientEnv = getfenv(2)
 	
 	local uniquetag = HttpService:GenerateGUID(false)
-	ListenerLib.installTo(ClientEnv, uniquetag)
+	ListenerLib.installTo(ClientEnv, uniquetag, Registry_)
 	
 	Data = Format(Data)
 	
