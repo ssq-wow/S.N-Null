@@ -78,6 +78,7 @@ local function New_Template()
 
 	Instances.Holder.Name = "Holder"
 	Instances.Holder.Size = UDim2.new(1, 0, 1, 0)
+	Instances.Holder.AnchorPoint = Vector2.new(0.5, 0.5)
 	Instances.Holder.BorderColor3 = Color3.new(0, 0, 0)
 	Instances.Holder.BackgroundTransparency = 1
 	Instances.Holder.BorderSizePixel = 0
