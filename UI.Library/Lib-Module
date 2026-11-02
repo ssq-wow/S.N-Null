@@ -1,19 +1,21 @@
 local module = {}
 
-local ListenerModule = script.Parent:WaitForChild("TableListener", math.huge)
-local FormatModule = script.Parent:WaitForChild("TableFormat", math.huge)
-local WrapperModule = script.Parent:WaitForChild("Wrapper", math.huge)
-local Registry = script.Parent:WaitForChild("Registry", math.huge)
+local Resolve = loadstring(game:HttpGet('https://raw.githubusercontent.com/ssq-wow/S.N-Null/refs/heads/main/UI.Library/ResolveUrl'))
 
-local Registry_ = require(Registry)
-local ListenerLib = require(ListenerModule)
-local FormatLib = require(FormatModule)
-local WrapperLib = require(WrapperModule)
+local ListenerModule = Resolve.FetchUrl("env.TableListener")
+local FormatModule = Resolve.FetchUrl("env.TableFormat")
+local WrapperModule = Resolve.FetchUrl(".Lib-Wrapper")
+local Registry = Resolve.FetchUrl("env.Registry")
+
+local Registry_ = loadstring(Registry)
+local ListenerLib = loadstring(ListenerModule)
+local FormatLib = loadstring(FormatModule)
+local WrapperLib = loadstring(WrapperModule)
 
 local Format = FormatLib.format
 local Wrap_, Unwrap_ = WrapperLib.wrap_, WrapperLib.unwrap_
 
-local CoreGui = Wrap_(script.Parent.Parent)
+local CoreGui = Wrap_(game:GetService("CoreGui"))
 local UserInputService = Wrap_(game:GetService("UserInputService"))
 local TextService = Wrap_(game:GetService("TextService"))
 local HttpService = Wrap_(game:GetService("HttpService"))
