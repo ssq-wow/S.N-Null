@@ -1,16 +1,16 @@
 local module = {}
 
-local Resolve = loadstring(game:HttpGet('https://raw.githubusercontent.com/ssq-wow/S.N-Null/refs/heads/main/UI.Library/ResolveUrl'))()
+local Resolve = loadstring(game:HttpGet('https://raw.githubusercontent.com/ssq-wow/S.N-Null/refs/heads/main/UI.Library/ResolveUrl'))
 
 local ListenerModule = Resolve.FetchUrl("env.TableListener")
 local FormatModule = Resolve.FetchUrl("env.TableFormat")
 local WrapperModule = Resolve.FetchUrl(".Lib-Wrapper")
 local Registry = Resolve.FetchUrl("env.Registry")
 
-local Registry_ = loadstring(Registry)()
-local ListenerLib = loadstring(ListenerModule)()
-local FormatLib = loadstring(FormatModule)()
-local WrapperLib = loadstring(WrapperModule)()
+local Registry_ = loadstring(Registry)
+local ListenerLib = loadstring(ListenerModule)
+local FormatLib = loadstring(FormatModule)
+local WrapperLib = loadstring(WrapperModule)
 
 local Format = FormatLib.format
 local Wrap_, Unwrap_ = WrapperLib.wrap_, WrapperLib.unwrap_
