@@ -1,1 +1,27 @@
+local module = {}
 
+local MainFolder = "https://raw.githubusercontent.com/ssq-wow/S.N-Null/refs/heads/main/"
+
+local map = {
+    ["UI.Library/"] = {
+        [".Lib-Parser"] = true,
+        [".Lib-Wrapper"] = true
+    },
+    ["UI.Library/Lib.Tables-Env/"] = {
+        ["env.Registry"] = true,
+        ["env.TableFormat"] = true,
+        ["env.TableListener"] = true
+    }
+}
+
+function module.FetchURL(modulename)
+    for index, v in pairs(map) do
+        if v[modulename] then
+            return MainFolder..index..modulename
+        end
+    end
+    
+    return nil
+end
+
+return module
